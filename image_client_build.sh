@@ -1,0 +1,1 @@
+docker build -f Dockerfile.client  -t warp-client-numa-aware:latest .

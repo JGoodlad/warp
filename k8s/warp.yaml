@@ -23,7 +23,7 @@ metadata:
 spec:
   serviceName: warp
   podManagementPolicy: Parallel
-  replicas: 4
+  replicas: 64
   selector:
     matchLabels:
       app: warp
@@ -45,10 +45,14 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
         - name: warp
-          image: "minio/warp:latest"
+          # Swap to my custom build container
+          image: "gcr.io/gcs-tess/warp-client-numa-aware:latest"
           imagePullPolicy: Always
-          args:
-            - client
+          securityContext:
+            privileged: true
+          # No args, I have my own script to launch the client
+          # args:
+          #   - client
           ports:
             - name: http
               containerPort: 7761

@@ -1,0 +1,1 @@
+docker build -f Dockerfile.server -t warp-server:latest .

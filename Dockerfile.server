@@ -1,0 +1,57 @@
+FROM golang:1.21
+
+ADD go.mod /go/src/github.com/minio/warp/go.mod
+ADD go.sum /go/src/github.com/minio/warp/go.sum
+WORKDIR /go/src/github.com/minio/warp/
+# Get dependencies - will also be cached if we won't change mod/sum
+RUN go mod download
+
+ADD . /go/src/github.com/minio/warp/
+WORKDIR /go/src/github.com/minio/warp/
+
+ENV CGO_ENABLED=0
+
+RUN go build -ldflags '-w -s' -a -o warp .
+
+# FROM alpine
+# MAINTAINER MinIO Development "dev@min.io"
+
+FROM ubuntu:22.04
+LABEL maintainer="MinIO Development <dev@min.io>"
+
+EXPOSE 7761
+
+# Install Python and pip (gsutil is a Python tool)
+# RUN apk add --no-cache python3 py3-pip
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    numactl \
+    rename
+
+RUN which numactl
+RUN which rename
+
+# Install gcloud deps
+RUN apt-get install -y apt-transport-https ca-certificates gnupg curl
+
+# Add Google Cloud public key
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+    | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+    | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    
+# Install gcloud
+RUN apt-get update -y && apt-get install -y google-cloud-cli 
+
+# Optionally, verify the installation
+RUN gcloud version
+
+# Optionally add gcloud to your PATH
+ENV PATH /google-cloud-sdk/bin:$PATH
+
+# Set up your gcloud configuration 
+RUN gcloud config set project gcs-tess
+
+COPY --from=0 /go/src/github.com/minio/warp/warp /warp
+
+# Set the script as the entrypoint
+ENTRYPOINT ["/warp"]

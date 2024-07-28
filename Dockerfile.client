@@ -1,0 +1,54 @@
+FROM golang:1.21
+
+ADD go.mod /go/src/github.com/minio/warp/go.mod
+ADD go.sum /go/src/github.com/minio/warp/go.sum
+WORKDIR /go/src/github.com/minio/warp/
+# Get dependencies - will also be cached if we won't change mod/sum
+RUN go mod download
+
+ADD . /go/src/github.com/minio/warp/
+WORKDIR /go/src/github.com/minio/warp/
+
+ENV CGO_ENABLED=0
+
+RUN go build -ldflags '-w -s' -a -o warp .
+
+# FROM alpine
+# MAINTAINER MinIO Development "dev@min.io"
+
+FROM ubuntu:22.04
+LABEL maintainer="MinIO Development <dev@min.io>"
+
+EXPOSE 7761
+
+# RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+# RUN apk update
+# # Install numactl and iproute2
+# RUN apk add --no-cache numactl iproute2
+# ENV PATH=/usr/bin:$PATH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    numactl \
+    iproute2 \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/* 
+
+RUN which numactl
+
+COPY --from=0 /go/src/github.com/minio/warp/warp /warp
+
+# Copy in the NUMA-aware client launcher script
+COPY numa_aware_warp_client.sh /numa_aware_warp_client.sh
+
+# Make the script executable
+RUN chmod +x /numa_aware_warp_client.sh
+
+# Set the script as the entrypoint
+ENTRYPOINT ["/numa_aware_warp_client.sh"]
+
+# OLD ATTEMPTS
+# Optional: Pre-allocate memory on specific NUMA nodes during startup (customize as needed)
+# ENTRYPOINT ["numactl", "--membind=0", "--cpunodebind=0", "/warp"] 
+
+# Default entrypoint (if not using the memory pre-allocation)
+# ENTRYPOINT ["/warp"]
