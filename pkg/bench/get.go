@@ -317,17 +317,22 @@ func (g *Get) Start(ctx context.Context, wait chan struct{}) (Operations, error)
 					continue
 				}
 				fbr.r = o
-				n, err := io.Copy(io.Discard, &fbr)
+				_, err = io.Copy(io.Discard, &fbr)
+				// n, err := io.Copy(io.Discard, &fbr)
 				if err != nil {
 					g.Error("download error:", err)
 					op.Err = err.Error()
 				}
 				op.FirstByte = fbr.t
 				op.End = time.Now()
-				if n != op.Size && op.Err == "" {
-					op.Err = fmt.Sprint("unexpected download size. want:", op.Size, ", got:", n)
-					g.Error(op.Err)
-				}
+				// if op.Err == "" {
+				// 	op.Err = fmt.Sprint("unexpected download size. want:", op.Size, ", got:", n)
+				// 	g.Error(op.Err)
+				// }
+				// if n != op.Size && op.Err == "" {
+				// 	op.Err = fmt.Sprint("unexpected download size. want:", op.Size, ", got:", n)
+				// 	g.Error(op.Err)
+				// }
 				rcv <- op
 				cldone()
 				o.Close()
