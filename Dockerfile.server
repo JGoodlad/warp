@@ -51,6 +51,13 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # Set up your gcloud configuration 
 RUN gcloud config set project gcs-tess
 
+
+# Copy a retry script to since gcloud storage mv seems flaky
+COPY retry.sh /retry.sh
+
+# Make the script executable
+RUN chmod +x /retry.sh
+
 COPY --from=0 /go/src/github.com/minio/warp/warp /warp
 
 # Set the script as the entrypoint

@@ -23,6 +23,8 @@ spec:
             value: "1"
           - name: WARP_HOST
             value: "storage.googleapis.com"
+          - name: WARP_TLS
+            value: "true"
           - name: WARP_ACCESS_KEY
             value: ""
           - name: WARP_SECRET_KEY
@@ -35,6 +37,7 @@ spec:
           - |
             echo "About to start benchmark nammed ${BENCHMARK_BUCKET_NAME}..."
             set -x
+            . ./retry.sh
             COMMAND="numactl --cpunodebind=$NUMA_NODE --membind=$NUMA_NODE \
             ./warp \
               get \
@@ -59,8 +62,9 @@ spec:
             rename 's/\[/-/; s/\]//' *.csv.zst
             BENCHMARK_FILENAME=$(find . -maxdepth 1 -type f -name "*.csv.zst" -printf "%f\n")
             ./warp analyze --analyze.v ${BENCHMARK_FILENAME} > ${BENCHMARK_BUCKET_NAME}_$(date +%s)_analyze.log 2>&1
-            gcloud storage --access-token-file=token.txt cp *.csv.zst gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
-            gcloud storage --access-token-file=token.txt cp *.log gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
+            gcloud storage --access-token-file=token.txt ls gs://gcs-tess-warp-benchmarks
+            retry 5 gcloud storage --access-token-file=token.txt cp $BENCHMARK_FILENAME gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
+            retry 5 gcloud storage --access-token-file=token.txt cp *.log gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
             echo "Benchmark complete and results uploaded to gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}"
       restartPolicy: Never
   backoffLimit: 1

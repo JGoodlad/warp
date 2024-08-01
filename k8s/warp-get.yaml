@@ -12,13 +12,13 @@ spec:
       - name: warp-job
         env:
           - name: BENCHMARK_BUCKET_NAME
-            value: test_do_not_use_new_bucket
+            value: get_numa_20m_64M_64n
           - name: DURATION
-            value: "30s"
+            value: "20m"
           - name: OBJECT_SIZE
             value: "64"
           - name: MAX_NODE_INDEX
-            value: "19"
+            value: "63"
           - name: NUMA_NODE
             value: "1"
           - name: WARP_HOST
@@ -54,23 +54,17 @@ spec:
             tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stdout.log < stdout_pipe &
             tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stderr.log < stderr_pipe &
             eval "$COMMAND" > stdout_pipe 2> stderr_pipe
-            rm stdout_pipe stderr_pipe
-            set +x
-            gcloud auth list
+            rm stdout_pipe stderr_pipe 
             echo $(gcloud auth print-access-token) > token.txt
-            cat token.txt
             rename 's/\[/-/; s/\]//' *.csv.zst
             BENCHMARK_FILENAME=$(find . -maxdepth 1 -type f -name "*.csv.zst" -printf "%f\n")
             ./warp analyze --analyze.v ${BENCHMARK_FILENAME} > ${BENCHMARK_BUCKET_NAME}_$(date +%s)_analyze.log 2>&1
-            gcloud storage --access-token-file=token.txt ls gs://gcs-tess-warp-benchmarks
-            retry 5 gcloud storage --access-token-file=token.txt cp $BENCHMARK_FILENAME gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
-            retry 5 gcloud storage --access-token-file=token.txt cp *.log gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
+            gcloud config set storage/parallel_composite_upload_enabled False
+            gcloud storage --access-token-file=token.txt cp $BENCHMARK_FILENAME gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
+            gcloud storage --access-token-file=token.txt cp *.log gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
             echo "Benchmark complete and results uploaded to gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}"
       restartPolicy: Never
   backoffLimit: 1
 
 
 # gsutil --use-external-account -m cp *.csv.zst gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
-
-            # eval "$COMMAND" \
-              # > >(tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stdout.log) 2> >(tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stderr.log)

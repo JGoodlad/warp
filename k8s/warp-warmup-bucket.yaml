@@ -11,14 +11,14 @@ spec:
       containers:
       - name: warp-job
         env:
+          - name: BENCHMARK_BUCKET_PREFIX
+            value: gs://gcs-tess-warp-benchmarks/warmup
           - name: BENCHMARK_BUCKET_NAME
-            value: test_do_not_use_new_bucket
+            value: warmup_64n
           - name: DURATION
-            value: "30s"
-          - name: OBJECT_SIZE
-            value: "64"
+            value: "5m"
           - name: MAX_NODE_INDEX
-            value: "19"
+            value: "63"
           - name: NUMA_NODE
             value: "1"
           - name: WARP_HOST
@@ -36,41 +36,46 @@ spec:
           - -c
           - |
             echo "About to start benchmark nammed ${BENCHMARK_BUCKET_NAME}..."
+
             set -x
+            export BENCHMARK_BUCKET_PREFIX="${BENCHMARK_BUCKET_PREFIX}$(date +%Y%m%d).$(date +%s)/"
             . ./retry.sh
+
             COMMAND="numactl --cpunodebind=$NUMA_NODE --membind=$NUMA_NODE \
             ./warp \
               get \
               --bucket=gcs-tess-warp-goodlad-us-central1-01 \
               --concurrent=64 \
-              --objects=1000 \
-              --obj.size=${OBJECT_SIZE}MiB \
-              --range=false \
+              --objects=64 \
+              --obj.size=5GiB \
+              --range=true \
+              --range-size=8MiB \
               --part.size=8MiB \
               --duration=${DURATION} \
               --warp-client=warp-{0...$MAX_NODE_INDEX}.warp.default.svc.cluster.local:7761"
+
             echo $COMMAND > ${BENCHMARK_BUCKET_NAME}_$(date +%s)_command.log
+
             mkfifo stdout_pipe stderr_pipe
             tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stdout.log < stdout_pipe &
             tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stderr.log < stderr_pipe &
             eval "$COMMAND" > stdout_pipe 2> stderr_pipe
             rm stdout_pipe stderr_pipe
-            set +x
-            gcloud auth list
-            echo $(gcloud auth print-access-token) > token.txt
-            cat token.txt
+            
             rename 's/\[/-/; s/\]//' *.csv.zst
+
             BENCHMARK_FILENAME=$(find . -maxdepth 1 -type f -name "*.csv.zst" -printf "%f\n")
             ./warp analyze --analyze.v ${BENCHMARK_FILENAME} > ${BENCHMARK_BUCKET_NAME}_$(date +%s)_analyze.log 2>&1
-            gcloud storage --access-token-file=token.txt ls gs://gcs-tess-warp-benchmarks
-            retry 5 gcloud storage --access-token-file=token.txt cp $BENCHMARK_FILENAME gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
-            retry 5 gcloud storage --access-token-file=token.txt cp *.log gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
-            echo "Benchmark complete and results uploaded to gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}"
+            ./warp analyze --analyze.v ${BENCHMARK_FILENAME} --analyze.out=${BENCHMARK_BUCKET_NAME}_$(date +%s)_analyze.csv
+
+            echo $(gcloud auth print-access-token) > token.txt
+            gcloud config set storage/parallel_composite_upload_enabled False
+            gcloud storage --access-token-file=token.txt cp *.csv ${BENCHMARK_BUCKET_PREFIX}${BENCHMARK_BUCKET_NAME}/
+            gcloud storage --access-token-file=token.txt cp *.log ${BENCHMARK_BUCKET_PREFIX}${BENCHMARK_BUCKET_NAME}/
+
+            echo "Benchmark complete and results uploaded to ${BENCHMARK_BUCKET_PREFIX}${BENCHMARK_BUCKET_NAME}"
       restartPolicy: Never
   backoffLimit: 1
 
-
-# gsutil --use-external-account -m cp *.csv.zst gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
-
-            # eval "$COMMAND" \
-              # > >(tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stdout.log) 2> >(tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stderr.log)
+# retry 2 gcloud storage --access-token-file=token.txt cp benchmark_data ${BENCHMARK_BUCKET_PREFIX}${BENCHMARK_BUCKET_NAME}/
+# gsutil --use-external-account -m cp *.csv.zst ${BENCHMARK_BUCKET_PREFIX}${BENCHMARK_BUCKET_NAME}/

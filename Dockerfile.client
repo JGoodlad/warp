@@ -9,7 +9,7 @@ RUN go mod download
 ADD . /go/src/github.com/minio/warp/
 WORKDIR /go/src/github.com/minio/warp/
 
-# ENV CGO_ENABLED=0
+ENV CGO_ENABLED=0
 
 RUN go build -ldflags '-w -s' -a -o warp .
 

@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: warp-job
+spec:
+  template:
+    spec:
+      nodeSelector:
+        iam.gke.io/gke-metadata-server-enabled: "true"
+      serviceAccountName: warp-benchmark
+      containers:
+      - name: warp-job
+        env:
+          - name: BENCHMARK_BUCKET_NAME
+            value: test_do_not_use_get_numa_20m_64M_40node
+          - name: DURATION
+            value: "2m"
+          - name: OBJECT_SIZE
+            value: "64"
+          - name: MAX_NODE_INDEX
+            value: "2"
+          - name: NUMA_NODE
+            value: "1"
+          - name: WARP_HOST
+            value: "storage.googleapis.com"
+          - name: WARP_ACCESS_KEY
+            value: "${WARP_ACCESS_KEY}"
+          - name: WARP_SECRET_KEY
+            value: "${WARP_SECRET_KEY}"
+        image: "minio/warp:latest"
+        imagePullPolicy: Always
+        args: [ "get", "--bucket", "gcs-tess-warp-goodlad-us-central1-01", "--warp-client", "warp-{0...3}.warp.default.svc.cluster.local:7761", "--concurrent", "64", "--obj.size", "32MiB", "--part.size", "8MiB", "--objects", "1000", "--duration", "2m" ]
+        # image: "gcr.io/gcs-tess/warp-server:latest"
+        # imagePullPolicy: Always
+        # command:
+        #   - /bin/sh
+        #   - -c
+        #   - |
+        #     echo "About to start benchmark nammed ${BENCHMARK_BUCKET_NAME}..."
+        #     set -x
+        #     numactl --cpunodebind=$NUMA_NODE --membind=$NUMA_NODE \
+        #     ./warp \
+        #       get \
+        #       --bucket=gcs-tess-warp-goodlad-us-central1-01 \
+        #       --concurrent=64 \
+        #       --objects=1000 \
+        #       --obj.size=${OBJECT_SIZE}MiB \
+        #       --range=false \
+        #       --part.size=8MiB \
+        #       --duration=${DURATION} \
+        #       --warp-client=warp-{0...$MAX_NODE_INDEX}.warp.default.svc.cluster.local:7761 \
+        #       --debug
+        #     set +x
+        #     gcloud auth list
+        #     echo $(gcloud auth print-access-token) > token.txt
+        #     cat token.txt
+        #     rename 's/\[/-/; s/\]//' *.csv.zst
+        #     gcloud storage --access-token-file=token.txt cp *.csv.zst gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
+        #     echo "Benchmark complete and results uploaded to gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}"
+      restartPolicy: Never
+  backoffLimit: 1
+
+
+# gsutil --use-external-account -m cp *.csv.zst gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
