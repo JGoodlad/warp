@@ -68,9 +68,3 @@ spec:
             echo "Benchmark complete and results uploaded to gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}"
       restartPolicy: Never
   backoffLimit: 1
-
-
-# gsutil --use-external-account -m cp *.csv.zst gs://gcs-tess-warp-benchmarks/20220726/${BENCHMARK_BUCKET_NAME}/
-
-            # eval "$COMMAND" \
-              # > >(tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stdout.log) 2> >(tee ${BENCHMARK_BUCKET_NAME}_$(date +%s)_stderr.log)
