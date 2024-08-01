@@ -317,7 +317,6 @@ func (g *Get) Start(ctx context.Context, wait chan struct{}) (Operations, error)
 					continue
 				}
 				fbr.r = o
-				// _, err = io.Copy(io.Discard, &fbr)
 				n, err := io.Copy(io.Discard, &fbr)
 				if err != nil {
 					g.Error("download error:", err)
@@ -325,10 +324,6 @@ func (g *Get) Start(ctx context.Context, wait chan struct{}) (Operations, error)
 				}
 				op.FirstByte = fbr.t
 				op.End = time.Now()
-				// if op.Err == "" {
-				// 	op.Err = fmt.Sprint("unexpected download size. want:", op.Size, ", got:", n)
-				// 	g.Error(op.Err)
-				// }
 				if n != op.Size && op.Err == "" {
 					op.Err = fmt.Sprint("unexpected download size. want:", op.Size, ", got:", n)
 					g.Error(op.Err)
