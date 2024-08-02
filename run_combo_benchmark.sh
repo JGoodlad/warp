@@ -89,7 +89,7 @@ for BUCKET_PREFIX_ in "${BUCKET_PREFIX_VALUES[@]}"; do
                         export SCRIPT="${SCRIPT_}"
                         # echo "$NODES,$SIZE,$THREADS,$DURATION_MIN,$BUCKET_PREFIX,$SCRIPT"
                         ./run_single_benchmark.sh $SCRIPT
-                        sleep $((DURATION_MIN * 60 + 15*60))
+                        sleep $((DURATION_MIN * 60 + 10*60))
                     done
                 done
             done

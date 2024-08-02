@@ -35,7 +35,7 @@ for var_name in "${LOGGABLE_VARS[@]}"; do
     echo "${var_name}=${var_value}"
 done
 
-envsubst '$WARP_ACCESS_KEY $WARP_SECRET_KEY $BUCKET_PREFIX $NODES $SIZE $THREADS $DURATION_MIN' < k8s/warp-get-ranged.yaml \
+envsubst '$WARP_ACCESS_KEY $WARP_SECRET_KEY $BUCKET_PREFIX $NODES $SIZE $THREADS $DURATION_MIN' < $1 \
     | kubectl delete -f -; \
-envsubst '$WARP_ACCESS_KEY $WARP_SECRET_KEY $BUCKET_PREFIX $NODES $SIZE $THREADS $DURATION_MIN' < k8s/warp-get-ranged.yaml \
+envsubst '$WARP_ACCESS_KEY $WARP_SECRET_KEY $BUCKET_PREFIX $NODES $SIZE $THREADS $DURATION_MIN' < $1 \
     | kubectl apply -f -

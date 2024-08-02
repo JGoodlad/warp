@@ -14,7 +14,7 @@ spec:
           - name: BENCHMARK_BUCKET_PREFIX
             value: gs://gcs-tess-warp-benchmarks/${BUCKET_PREFIX}
           - name: BENCHMARK_BUCKET_NAME
-            value: get_numa_${NODES}n_${SIZE}M_${THREADS}t_${DURATION_MIN}m
+            value: put_numa_${NODES}n_${SIZE}M_${THREADS}t_${DURATION_MIN}m
           - name: NUM_NODES
             value: "${NODES}"
           - name: NUM_THREADS
