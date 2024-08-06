@@ -51,7 +51,7 @@ spec:
             ./warp \
               get \
               --bucket=gcs-tess-warp-goodlad-us-central1-01 \
-              --concurrent=64 \
+              --concurrent=${NUM_THREADS} \
               --objects=1000 \
               --obj.size=${OBJECT_SIZE}MiB \
               --range=false \
